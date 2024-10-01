@@ -1,0 +1,111 @@
+<><><><><><><><><><><><><><><><><><><><><><><><><><><>QUESTION 1 <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><
+Q1. In a large Angular application, suppose you have a parent component that renders a list of child components. Each child component has complex bindings that involve multiple asynchronous HTTP requests. Describe how you would optimize the rendering and change detection to ensure performance is not affected as the list grows. Specifically, discuss:
+
+Change detection strategies.
+Using RxJS operators for handling multiple asynchronous requests.
+Methods for improving performance at the template level.
+Expected Answer:
+The candidate should cover the following concepts:
+
+Change Detection Strategy: By default, Angular uses the Default change detection strategy, which checks all components on each change detection cycle. For performance improvement, we can switch to the OnPush strategy. This limits change detection to only when component inputs change or events are emitted, reducing unnecessary checks.
+
+typescript
+Copy code
+@Component({
+  selector: 'app-child',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  ...
+})
+export class ChildComponent { ... }
+AsyncPipe: The AsyncPipe should be used in the template to handle asynchronous data streams (e.g., HTTP requests) instead of subscribing manually in the component class. This ensures better memory management as Angular automatically handles subscriptions and unsubscriptions.
+
+html
+Copy code
+<div *ngFor="let item of items$ | async">{{ item.name }}</div>
+RxJS Operators: To efficiently handle multiple asynchronous HTTP requests, use operators like forkJoin, combineLatest, or mergeMap. For example, if you need to handle multiple parallel HTTP requests, forkJoin can be used, which waits for all observables to complete before emitting values. If you need sequential requests, concatMap is useful.
+
+typescript
+Copy code
+forkJoin([
+  this.http.get('/api/first'),
+  this.http.get('/api/second'),
+]).subscribe(results => {
+  // Handle the combined results
+});
+TrackBy in ngFor: In large lists, using trackBy in ngFor improves performance by ensuring that Angular only re-renders the elements that have changed, rather than re-rendering the entire list.
+
+html
+Copy code
+<div *ngFor="let item of items; trackBy: trackByFn">{{ item.name }}</div>
+typescript
+Copy code
+trackByFn(index, item) {
+  return item.id; // or any unique identifier
+}
+Detach Change Detection: In certain cases, it might make sense to manually detach and reattach change detection using ChangeDetectorRef. This is especially useful in scenarios where a component needs to handle large amounts of data without triggering frequent updates to the view.
+
+typescript
+Copy code
+constructor(private cdr: ChangeDetectorRef) {}
+
+ngOnInit() {
+  this.cdr.detach();
+  this.loadData().then(() => {
+    this.cdr.reattach();
+  });
+}
+This question evaluates the candidate's knowledge of performance optimization, change detection, and handling asynchronous data in Angular.
+
+
+
+<><><><><><><><><><><><><><><><><><><><><><><><><><><>QUESTION 2 <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+Q2. You have an Angular application with multiple modules, and you want to share a service across some of these modules, but not all. Describe how you would implement this service so that:
+
+It is available only to the modules that need it.
+Each module can have its own instance of the service, instead of a singleton.
+Explain the role of providedIn in service providers and how it impacts tree-shaking.
+Expected Answer:
+The candidate should cover the following aspects:
+
+Service Scoping Across Modules: If you want to provide a service that is shared only across specific modules but not globally, you can configure the service provider in the providers array of the @NgModule decorator in each module that needs its own instance of the service. This way, Angular creates a new instance of the service for each module.
+
+typescript
+Copy code
+@NgModule({
+  providers: [MyService],
+  ...
+})
+export class SomeModule {}
+Module-Specific Instances: By including the service in the providers array of multiple modules, each module will receive its own instance of the service, as Angular creates a new instance whenever the service is provided at the module level. This avoids the singleton behavior and ensures that the service is scoped only to the specific modules that declare it.
+
+typescript
+Copy code
+@NgModule({
+  providers: [MyService]
+})
+export class FeatureModuleA {}
+
+@NgModule({
+  providers: [MyService]
+})
+export class FeatureModuleB {}
+Role of providedIn: The providedIn metadata in the @Injectable decorator allows Angular to decide where the service is provided. If you specify providedIn: 'root', Angular creates a singleton service across the entire application, meaning it is available everywhere and tree-shakable (only included in the final bundle if it is used). However, if you want to scope the service to specific modules or lazy-loaded modules, you shouldn't use providedIn: 'root' but rather specify it in the providers array of the respective modules.
+
+typescript
+Copy code
+@Injectable({
+  providedIn: 'root' // Global singleton, shared across the entire app
+})
+export class GlobalService {}
+If you want the service to be tree-shakable but scoped to a lazy-loaded module, you can set providedIn: 'any'. This creates a new instance of the service for each lazy-loaded module, ensuring it's not included in other parts of the application unnecessarily.
+
+typescript
+Copy code
+@Injectable({
+  providedIn: 'any'
+})
+export class MyService {}
+This question tests the candidate's understanding of dependency injection, service scoping, tree-shaking, and the provider mechanism in Angular.
+
+
+<><><><><><><><><><><><><><><><><><><><><><><><><><><>QUESTION 3 <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
